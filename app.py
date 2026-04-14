@@ -11,6 +11,10 @@ st.set_page_config(page_title="AI Career Intelligence PRO", layout="wide")
 st.title("🚀 AI Career Intelligence PRO")
 st.write("Next-Gen Career Analyzer with AI Insights")
 
+# ---------------- SESSION STATE ----------------
+if "analyze_clicked" not in st.session_state:
+    st.session_state.analyze_clicked = False
+
 # ---------------- DATA ----------------
 roles_data = {
     "Data Analyst": ["python", "sql", "excel", "powerbi", "statistics"],
@@ -51,7 +55,6 @@ trend_data = {
     "Software Engineer": 78
 }
 
-# ---------------- ROADMAP DATA ----------------
 roadmaps = {
     "Data Scientist": [
         {"step": "Learn Python Basics", "desc": "Syntax, loops, OOP",
@@ -60,13 +63,13 @@ roadmaps = {
          "resources": ["https://www.khanacademy.org/math/statistics-probability"]},
         {"step": "Machine Learning", "desc": "Supervised & unsupervised learning",
          "resources": ["https://www.coursera.org/learn/machine-learning"]},
-        {"step": "Projects", "desc": "Build real-world ML apps",
+        {"step": "Projects", "desc": "Build ML apps",
          "resources": ["https://www.kaggle.com/learn"]}
     ],
     "ML Engineer": [
         {"step": "Python + ML", "desc": "Strong coding + ML basics",
          "resources": ["https://www.w3schools.com/python/"]},
-        {"step": "Deep Learning", "desc": "CNN, RNN, Neural Networks",
+        {"step": "Deep Learning", "desc": "CNN, RNN",
          "resources": ["https://www.deeplearning.ai/"]},
         {"step": "MLOps", "desc": "Deployment, Docker",
          "resources": ["https://www.youtube.com/watch?v=06-AZXmwHjo"]},
@@ -108,14 +111,20 @@ st.sidebar.header("🧠 Your Profile")
 selected_skills = st.sidebar.multiselect("Select Skills", all_skills)
 experience = st.sidebar.slider("Experience", 0, 10, 1)
 target_role = st.sidebar.selectbox("🎯 Target Role", list(roles_data.keys()))
-analyze = st.sidebar.button("🚀 Analyze")
+
+if st.sidebar.button("🚀 Analyze"):
+    st.session_state.analyze_clicked = True
+
+if st.sidebar.button("🔄 Reset"):
+    st.session_state.clear()
 
 # ---------------- MODEL ----------------
 vectorizer = TfidfVectorizer()
 skill_matrix = vectorizer.fit_transform(df["Skills"])
 
 # ---------------- MAIN ----------------
-if analyze:
+if st.session_state.analyze_clicked:
+
     if not selected_skills:
         st.warning("Please select skills")
     else:
@@ -144,7 +153,18 @@ if analyze:
 
         skill_levels = {}
         for skill in selected_skills:
-            level = st.slider(f"{skill} proficiency (%)", 0, 100, 50)
+            key_name = f"{skill}_slider"
+
+            if key_name not in st.session_state:
+                st.session_state[key_name] = 50
+
+            level = st.slider(
+                f"{skill} proficiency (%)",
+                0, 100,
+                st.session_state[key_name],
+                key=key_name
+            )
+
             skill_levels[skill] = level
 
         st.write("### 📈 Your Skill Strength")
@@ -164,7 +184,7 @@ if analyze:
                     st.write(link)
                 st.markdown("---")
         else:
-            st.info("Roadmap coming soon for this role")
+            st.info("Roadmap coming soon")
 
         # ---------------- MISSING SKILLS ----------------
         st.subheader("🚨 Skills You Need to Learn")
@@ -182,15 +202,19 @@ if analyze:
 
         # ---------------- TRENDS ----------------
         st.subheader("📈 Job Market Trends")
+
         trend_df = pd.DataFrame({
             "Role": list(trend_data.keys()),
             "Demand": list(trend_data.values())
         })
+
         st.bar_chart(trend_df.set_index("Role"))
 
         # ---------------- CAREER SWITCH ----------------
         st.subheader("🔄 Career Switch Simulator")
+
         needed = set(roles_data[target_role]) - set(selected_skills)
+
         st.write(f"To switch to **{target_role}**, you need:")
         st.error(", ".join(needed) if needed else "You are ready!")
 
