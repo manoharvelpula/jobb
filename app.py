@@ -148,29 +148,19 @@ if st.session_state.analyze_clicked:
 
         best_role = top_roles.iloc[0]["Role"]
 
-        # ---------------- SKILL STRENGTH ----------------
-        st.subheader("📊 Skill Strength (Rate Yourself)")
+        # ---------------- AUTO SKILL STRENGTH ----------------
+        st.subheader("📊 Skill Strength (AI Estimated)")
 
-        skill_levels = {}
+        required = set(roles_data[best_role])
+
         for skill in selected_skills:
-            key_name = f"{skill}_slider"
+            if skill in required:
+                strength = 90
+            else:
+                strength = 60
 
-            if key_name not in st.session_state:
-                st.session_state[key_name] = 50
-
-            level = st.slider(
-                f"{skill} proficiency (%)",
-                0, 100,
-                st.session_state[key_name],
-                key=key_name
-            )
-
-            skill_levels[skill] = level
-
-        st.write("### 📈 Your Skill Strength")
-        for skill, level in skill_levels.items():
-            st.write(f"{skill}: {level}%")
-            st.progress(level)
+            st.write(f"{skill}: {strength}%")
+            st.progress(strength)
 
         # ---------------- ROADMAP ----------------
         st.subheader("🧠 Detailed Career Roadmap")
@@ -189,8 +179,7 @@ if st.session_state.analyze_clicked:
         # ---------------- MISSING SKILLS ----------------
         st.subheader("🚨 Skills You Need to Learn")
 
-        required_skills = set(roles_data[best_role])
-        missing_skills = required_skills - set(selected_skills)
+        missing_skills = required - set(selected_skills)
 
         if missing_skills:
             for skill in missing_skills:
