@@ -146,15 +146,6 @@ if st.session_state.analyze_clicked:
 
         best_role = top_roles.iloc[0]["Role"]
 
-        # ---------------- SKILL STRENGTH ----------------
-        st.subheader("📊 Skill Strength (AI Estimated)")
-
-        required = set(roles_data[best_role])
-        for skill in selected_skills:
-            strength = 90 if skill in required else 60
-            st.write(f"{skill}: {strength}%")
-            st.progress(strength)
-
         # ---------------- ROADMAP ----------------
         st.subheader("🧠 Detailed Career Roadmap")
 
@@ -170,7 +161,9 @@ if st.session_state.analyze_clicked:
         # ---------------- MISSING SKILLS ----------------
         st.subheader("🚨 Skills You Need to Learn")
 
+        required = set(roles_data[best_role])
         missing_skills = required - set(selected_skills)
+
         if missing_skills:
             for skill in missing_skills:
                 st.write(f"❌ {skill}")
@@ -179,10 +172,27 @@ if st.session_state.analyze_clicked:
         else:
             st.success("🔥 You already have all required skills!")
 
-        # ---------------- PDF REPORT (FIXED) ----------------
+        # ---------------- TRENDS ----------------
+        st.subheader("📈 Job Market Trends")
+
+        trend_df = pd.DataFrame({
+            "Role": list(trend_data.keys()),
+            "Demand": list(trend_data.values())
+        })
+
+        st.bar_chart(trend_df.set_index("Role"))
+
+        # ---------------- CAREER SWITCH ----------------
+        st.subheader("🔄 Career Switch Simulator")
+
+        needed = set(roles_data[target_role]) - set(selected_skills)
+        st.write(f"To switch to **{target_role}**, you need:")
+        st.error(", ".join(needed) if needed else "You are ready!")
+
+        # ---------------- PDF DOWNLOAD FIX ----------------
         st.subheader("📄 Download Report")
 
-        def generate_pdf():
+        def generate_pdf_bytes():
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=12)
@@ -197,10 +207,10 @@ if st.session_state.analyze_clicked:
 
             return pdf.output(dest='S').encode('latin-1')
 
-        pdf_bytes = generate_pdf()
+        pdf_bytes = generate_pdf_bytes()
 
         st.download_button(
-            label="Download Report",
+            label="📥 Download Career Report",
             data=pdf_bytes,
             file_name="career_report.pdf",
             mime="application/pdf"
