@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from fpdf import FPDF
 import io
 
 # ---------------- PAGE CONFIG ----------------
@@ -59,33 +58,11 @@ trend_data = {
 roadmaps = {
     "Data Scientist": [
         {"step": "Learn Python Basics", "desc": "Syntax, loops, OOP",
-         "resources": ["https://www.w3schools.com/python/", "https://www.youtube.com/watch?v=rfscVS0vtbw"]},
+         "resources": ["https://www.w3schools.com/python/"]},
         {"step": "Statistics", "desc": "Probability, distributions",
          "resources": ["https://www.khanacademy.org/math/statistics-probability"]},
         {"step": "Machine Learning", "desc": "Supervised & unsupervised learning",
-         "resources": ["https://www.coursera.org/learn/machine-learning"]},
-        {"step": "Projects", "desc": "Build ML apps",
-         "resources": ["https://www.kaggle.com/learn"]}
-    ],
-    "ML Engineer": [
-        {"step": "Python + ML", "desc": "Strong coding + ML basics",
-         "resources": ["https://www.w3schools.com/python/"]},
-        {"step": "Deep Learning", "desc": "CNN, RNN",
-         "resources": ["https://www.deeplearning.ai/"]},
-        {"step": "MLOps", "desc": "Deployment, Docker",
-         "resources": ["https://www.youtube.com/watch?v=06-AZXmwHjo"]},
-        {"step": "Projects", "desc": "Deploy models",
-         "resources": ["https://github.com"]}
-    ],
-    "Frontend Developer": [
-        {"step": "HTML & CSS", "desc": "Structure & styling",
-         "resources": ["https://www.freecodecamp.org/"]},
-        {"step": "JavaScript", "desc": "Core JS",
-         "resources": ["https://javascript.info/"]},
-        {"step": "React", "desc": "Modern UI",
-         "resources": ["https://react.dev/"]},
-        {"step": "Projects", "desc": "Build websites",
-         "resources": ["https://frontendmentor.io/"]}
+         "resources": ["https://www.coursera.org/learn/machine-learning"]}
     ]
 }
 
@@ -94,8 +71,7 @@ learning_links = {
     "machine learning": "https://www.coursera.org/learn/machine-learning",
     "tensorflow": "https://www.tensorflow.org/tutorials",
     "react": "https://react.dev/learn",
-    "sql": "https://www.w3schools.com/sql/",
-    "docker": "https://www.docker.com/101-tutorial"
+    "sql": "https://www.w3schools.com/sql/"
 }
 
 # ---------------- DATAFRAME ----------------
@@ -146,86 +122,42 @@ if st.session_state.analyze_clicked:
 
         best_role = top_roles.iloc[0]["Role"]
 
-        # ---------------- AUTO SKILL STRENGTH ----------------
-        st.subheader("📊 Skill Strength (AI Estimated)")
-
-        required = set(roles_data[best_role])
-
-        for skill in selected_skills:
-            strength = 90 if skill in required else 60
-            st.write(f"{skill}: {strength}%")
-            st.progress(strength)
-
-        # ---------------- ROADMAP ----------------
-        st.subheader("🧠 Detailed Career Roadmap")
-
-        if best_role in roadmaps:
-            for i, item in enumerate(roadmaps[best_role]):
-                st.markdown(f"### Step {i+1}: {item['step']}")
-                st.write(f"👉 {item['desc']}")
-                st.write("📚 Resources:")
-                for link in item["resources"]:
-                    st.write(link)
-                st.markdown("---")
-        else:
-            st.info("Roadmap coming soon")
-
         # ---------------- MISSING SKILLS ----------------
         st.subheader("🚨 Skills You Need to Learn")
 
+        required = set(roles_data[best_role])
         missing_skills = required - set(selected_skills)
 
         if missing_skills:
             for skill in missing_skills:
                 st.write(f"❌ {skill}")
                 if skill in learning_links:
-                    st.write(f"Learn here: {learning_links[skill]}")
+                    st.write(f"Learn: {learning_links[skill]}")
         else:
             st.success("🔥 You already have all required skills!")
 
-        # ---------------- TRENDS ----------------
-        st.subheader("📈 Job Market Trends")
+        # ---------------- EXCEL DOWNLOAD ----------------
+        st.subheader("📊 Download Report (Excel)")
 
-        trend_df = pd.DataFrame({
-            "Role": list(trend_data.keys()),
-            "Demand": list(trend_data.values())
+        report_df = pd.DataFrame({
+            "Selected Skills": selected_skills,
         })
 
-        st.bar_chart(trend_df.set_index("Role"))
+        summary_df = pd.DataFrame({
+            "Best Role": [best_role],
+            "Salary": [salary_data[best_role]]
+        })
 
-        # ---------------- CAREER SWITCH ----------------
-        st.subheader("🔄 Career Switch Simulator")
-
-        needed = set(roles_data[target_role]) - set(selected_skills)
-
-        st.write(f"To switch to **{target_role}**, you need:")
-        st.error(", ".join(needed) if needed else "You are ready!")
-
-        # ---------------- PDF DOWNLOAD (FIXED) ----------------
-        st.subheader("📄 Download Report")
-
-        def generate_pdf():
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-
-            pdf.cell(200, 10, txt="Career Report", ln=True)
-            pdf.cell(200, 10, txt=f"Best Role: {best_role}", ln=True)
-            pdf.cell(200, 10, txt=f"Salary: {salary_data[best_role]}", ln=True)
-
-            pdf.cell(200, 10, txt="Skills:", ln=True)
-            for skill in selected_skills:
-                pdf.cell(200, 10, txt=skill, ln=True)
-
-            return pdf.output(dest='S').encode('latin-1')
-
-        pdf_bytes = generate_pdf()
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            report_df.to_excel(writer, sheet_name='Skills', index=False)
+            summary_df.to_excel(writer, sheet_name='Summary', index=False)
 
         st.download_button(
-            label="Download Career Report",
-            data=pdf_bytes,
-            file_name="career_report.pdf",
-            mime="application/pdf"
+            label="Download Excel Report",
+            data=output.getvalue(),
+            file_name="career_report.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
 # ---------------- FOOTER ----------------
