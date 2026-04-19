@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from fpdf import FPDF
+import io
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Career Intelligence PRO", layout="wide")
@@ -115,9 +116,6 @@ target_role = st.sidebar.selectbox("🎯 Target Role", list(roles_data.keys()))
 if st.sidebar.button("🚀 Analyze"):
     st.session_state.analyze_clicked = True
 
-if st.sidebar.button("🔄 Reset"):
-    st.session_state.clear()
-
 # ---------------- MODEL ----------------
 vectorizer = TfidfVectorizer()
 skill_matrix = vectorizer.fit_transform(df["Skills"])
@@ -148,17 +146,12 @@ if st.session_state.analyze_clicked:
 
         best_role = top_roles.iloc[0]["Role"]
 
-        # ---------------- AUTO SKILL STRENGTH ----------------
+        # ---------------- SKILL STRENGTH ----------------
         st.subheader("📊 Skill Strength (AI Estimated)")
 
         required = set(roles_data[best_role])
-
         for skill in selected_skills:
-            if skill in required:
-                strength = 90
-            else:
-                strength = 60
-
+            strength = 90 if skill in required else 60
             st.write(f"{skill}: {strength}%")
             st.progress(strength)
 
@@ -173,14 +166,11 @@ if st.session_state.analyze_clicked:
                 for link in item["resources"]:
                     st.write(link)
                 st.markdown("---")
-        else:
-            st.info("Roadmap coming soon")
 
         # ---------------- MISSING SKILLS ----------------
         st.subheader("🚨 Skills You Need to Learn")
 
         missing_skills = required - set(selected_skills)
-
         if missing_skills:
             for skill in missing_skills:
                 st.write(f"❌ {skill}")
@@ -189,25 +179,7 @@ if st.session_state.analyze_clicked:
         else:
             st.success("🔥 You already have all required skills!")
 
-        # ---------------- TRENDS ----------------
-        st.subheader("📈 Job Market Trends")
-
-        trend_df = pd.DataFrame({
-            "Role": list(trend_data.keys()),
-            "Demand": list(trend_data.values())
-        })
-
-        st.bar_chart(trend_df.set_index("Role"))
-
-        # ---------------- CAREER SWITCH ----------------
-        st.subheader("🔄 Career Switch Simulator")
-
-        needed = set(roles_data[target_role]) - set(selected_skills)
-
-        st.write(f"To switch to **{target_role}**, you need:")
-        st.error(", ".join(needed) if needed else "You are ready!")
-
-        # ---------------- PDF REPORT ----------------
+        # ---------------- PDF REPORT (FIXED) ----------------
         st.subheader("📄 Download Report")
 
         def generate_pdf():
@@ -223,14 +195,16 @@ if st.session_state.analyze_clicked:
             for skill in selected_skills:
                 pdf.cell(200, 10, txt=skill, ln=True)
 
-            file = "career_report.pdf"
-            pdf.output(file)
-            return file
+            return pdf.output(dest='S').encode('latin-1')
 
-        if st.button("Download PDF"):
-            file = generate_pdf()
-            with open(file, "rb") as f:
-                st.download_button("Download Now", f, file_name="career_report.pdf")
+        pdf_bytes = generate_pdf()
+
+        st.download_button(
+            label="Download Report",
+            data=pdf_bytes,
+            file_name="career_report.pdf",
+            mime="application/pdf"
+        )
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
