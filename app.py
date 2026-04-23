@@ -9,7 +9,7 @@ import io
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Powered Career Path Analyzer", layout="wide")
 
-st.title("🚀 AI Career Intelligence PRO")
+st.title("🚀 AI Powered Career Path Analyzer")
 st.write("Next-Gen Career Analyzer with AI Insights")
 
 # ---------------- SESSION STATE ----------------
